@@ -1,4 +1,5 @@
 var AWS = require('aws-sdk');
+var request = require('request');
 var ses = new AWS.SES({apiVersion: '2010-12-01'});
 var sqs = new AWS.SQS({region: process.env.Region, httpOptions: {agent: agent}});
 var s3 = new AWS.S3();
@@ -10,6 +11,7 @@ var toddresses = process.env.ToAddr;
 var srcaddr = process.env.SrcAddr;
 var bucket = process.env.BucketName;
 var prefix = process.env.BucketPrefix;
+var slackToken = process.env.slackToken;
 var qSize = null;
 var content = null;
 var queueParams = {AttributeNames: ["ApproximateNumberOfMessages"], QueueUrl: queueURL};
@@ -18,6 +20,7 @@ var queueParams = {AttributeNames: ["ApproximateNumberOfMessages"], QueueUrl: qu
 exports.handler = (event, context, callback) => {
     var date = (new Date()).toString().split(' ').splice(1, 4).join('-');
     var url = null;
+    var filename = date + ".html";
 
     function s3upload() {
         if (prefix == undefined) {
@@ -25,9 +28,9 @@ exports.handler = (event, context, callback) => {
         }
         var param = {
             Bucket: bucket,
-            Key: prefix + date + ".html",
+            Key: prefix + filename,
             Body: content,
-            ACL: 'public-read',
+            ACL: 'private',
             ContentType: "text/html"
         };
         s3.upload(param, function (err, data) {
@@ -38,7 +41,26 @@ exports.handler = (event, context, callback) => {
             if (toddresses) {
                 sendMail();
             }
+            if (slackToken) {
+                sendToSlack();
+            }
             //context.done();
+        });
+    }
+
+    function sendToSlack() {
+        request.post({
+            url: 'https://slack.com/api/files.upload',
+            formData: {
+                token: slackToken,
+                title: "Synduit SES Email Report " + date,
+                filename: filename,
+                filetype: "html",
+                channels: "monitoring",
+                content: content,
+            },
+        }, function (err, response) {
+            console.log(JSON.parse(response.body));
         });
     }
 
