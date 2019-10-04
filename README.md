@@ -1,6 +1,8 @@
 # AWS SES Report
 #### Dashboard for SES (Simple Email Service) to track deliveries, bounces and complaints
 
+Added support for sending Slack message. Add `slackToken` environment for that.
+
 Created from: https://aws.amazon.com/blogs/ses/creating-a-daily-dashboard-to-track-bounces-and-complaints/
 
 This version includes deliveries, from-email and subject.
